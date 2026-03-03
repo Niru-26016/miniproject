@@ -1,0 +1,13 @@
+# Python environment
+.venv/
+__pycache__/
+*.pyc
+
+# Local Data & Secrets
+.env
+brand_db/
+
+# IDE settings
+.vscode/
+.idea/
+.DS_Store
