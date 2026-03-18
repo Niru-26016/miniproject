@@ -1,17 +1,20 @@
 import requests
 import time
+import os
 
 class RedditScraper:
     def __init__(self):
         self.headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/122.0.0.0'}
 
-    def scrape(self, brand: str, comments_per_post=5):
+    def scrape(self, brand: str):
         """
         1. Search Reddit for posts matching the brand/query
         2. For each post, fetch top comments
         Returns a combined list of posts + their comments
         """
-        url = f"https://www.reddit.com/search.json?q={brand}&limit=15&sort=relevance&t=week"
+        post_limit = os.getenv("REDDIT_POST_LIMIT", "15")
+        comments_per_post = int(os.getenv("REDDIT_COMMENTS_PER_POST", "10"))
+        url = f"https://www.reddit.com/search.json?q={brand}&limit={post_limit}&sort=relevance&t=week"
         try:
             response = requests.get(url, headers=self.headers)
             if response.status_code != 200: return []
@@ -44,7 +47,7 @@ class RedditScraper:
             print(f"Scraper Error: {e}")
             return []
 
-    def _fetch_comments(self, permalink, limit=5):
+    def _fetch_comments(self, permalink, limit=3):
         """Fetch top comments from a single post"""
         try:
             url = f"https://www.reddit.com{permalink}.json?limit={limit}&sort=top"
