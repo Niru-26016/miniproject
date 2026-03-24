@@ -62,9 +62,9 @@ async def analyze_product(query: str):
     """
     Full analysis pipeline:
     1. Scrape Reddit for the query
-    2. Run VADER sentiment on each comment
-    3. Run BotShield on each comment
-    4. Use OpenAI to detect fake/real comments
+    2. Run VADER sentiment on each post
+    3. Run BotShield on each post
+    4. Use OpenAI to detect fake/real posts
     5. Generate AI insight summary
     """
     # Step 1: Scrape
@@ -88,9 +88,9 @@ async def analyze_product(query: str):
         _, bot_score = shield.predict(p)
         p['bot_score'] = round(bot_score, 3)
 
-    # Step 4: OpenAI fake comment detection
-    comment_texts = [p['content'] for p in posts]
-    fake_results = brain.detect_fake_comments(comment_texts)
+    # Step 4: OpenAI fake post detection
+    post_texts = [p['content'] for p in posts]
+    fake_results = brain.detect_fake_posts(post_texts)
     for i, p in enumerate(posts):
         p['is_fake'] = fake_results[i]['is_fake']
         p['fake_confidence'] = round(fake_results[i]['confidence'], 3)
@@ -99,7 +99,7 @@ async def analyze_product(query: str):
     all_content = "\n".join([p['content'] for p in posts if not p['is_fake']])
     ai_insight = brain.generate_insight(query, all_content[:3000])
 
-    # Build summary stats (exclude fake comments from sentiment)
+    # Build summary stats (exclude fake posts from sentiment)
     sentiment_counts = {'positive': 0, 'negative': 0, 'neutral': 0}
     total_sentiment = 0
     real_count = 0
@@ -116,12 +116,12 @@ async def analyze_product(query: str):
 
     return {
         "query": query,
-        "total_comments": len(posts),
+        "total_posts": len(posts),
         "sentiment_summary": sentiment_counts,
         "avg_sentiment": avg_sentiment,
-        "fake_comments_detected": fake_count,
+        "fake_posts_detected": fake_count,
         "ai_insight": ai_insight,
-        "comments": posts
+        "posts": posts
     }
 
 # ---------- Serve Frontend ----------

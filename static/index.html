@@ -129,8 +129,8 @@
                     </svg>
                 </div>
                 <div class="stat-info">
-                    <span class="stat-value" id="totalComments">0</span>
-                    <span class="stat-label">Total Comments</span>
+                    <span class="stat-value" id="totalPosts">0</span>
+                    <span class="stat-label">Total Posts</span>
                 </div>
             </div>
             <div class="stat-card stat-sentiment">
@@ -195,7 +195,7 @@
                 </div>
             </div>
             <div class="chart-card">
-                <h3 class="card-title">Comment Sentiment Scores</h3>
+                <h3 class="card-title">Post Sentiment Scores</h3>
                 <div class="chart-wrapper">
                     <canvas id="sentimentBarChart"></canvas>
                 </div>
@@ -225,25 +225,25 @@
             </div>
         </div>
 
-        <!-- Comments Table -->
+        <!-- Posts Table -->
         <div class="table-card">
             <div class="table-header">
-                <h3 class="card-title">All Comments</h3>
+                <h3 class="card-title">All Posts</h3>
                 <div class="table-filters">
-                    <button class="filter-btn active" data-filter="all" onclick="filterComments('all', this)">All</button>
-                    <button class="filter-btn" data-filter="real" onclick="filterComments('real', this)">Real</button>
-                    <button class="filter-btn" data-filter="fake" onclick="filterComments('fake', this)">Fake</button>
-                    <button class="filter-btn" data-filter="positive" onclick="filterComments('positive', this)">Positive</button>
-                    <button class="filter-btn" data-filter="negative" onclick="filterComments('negative', this)">Negative</button>
+                    <button class="filter-btn active" data-filter="all" onclick="filterPosts('all', this)">All</button>
+                    <button class="filter-btn" data-filter="real" onclick="filterPosts('real', this)">Real</button>
+                    <button class="filter-btn" data-filter="fake" onclick="filterPosts('fake', this)">Fake</button>
+                    <button class="filter-btn" data-filter="positive" onclick="filterPosts('positive', this)">Positive</button>
+                    <button class="filter-btn" data-filter="negative" onclick="filterPosts('negative', this)">Negative</button>
                 </div>
             </div>
             <div class="table-container">
-                <table id="commentsTable">
+                <table id="postsTable">
                     <thead>
                         <tr>
                             <th>#</th>
                             <th>Author</th>
-                            <th>Comment</th>
+                            <th>Post</th>
                             <th>Sentiment</th>
                             <th>Score</th>
                             <th>Real / Fake</th>
@@ -251,7 +251,7 @@
                             <th>Link</th>
                         </tr>
                     </thead>
-                    <tbody id="commentsBody">
+                    <tbody id="postsBody">
                     </tbody>
                 </table>
             </div>

@@ -14,7 +14,7 @@ let barChart = null;
 let donutChart = null;
 
 // Current data (for filtering)
-let currentComments = [];
+let currentPosts = [];
 
 // ===== CHART.JS DEFAULTS =====
 Chart.defaults.color = '#8b8b9e';
@@ -109,10 +109,10 @@ function renderDashboard(data) {
     document.getElementById('timestamp').textContent = new Date().toLocaleString();
 
     // Stats
-    animateCounter('totalComments', data.total_comments);
+    animateCounter('totalPosts', data.total_posts);
     animateCounter('positiveCount', data.sentiment_summary.positive);
     animateCounter('negativeCount', data.sentiment_summary.negative);
-    animateCounter('fakeCount', data.fake_comments_detected);
+    animateCounter('fakeCount', data.fake_posts_detected);
 
     const avgEl = document.getElementById('avgSentiment');
     avgEl.textContent = data.avg_sentiment > 0 ? `+${data.avg_sentiment}` : data.avg_sentiment;
@@ -120,15 +120,15 @@ function renderDashboard(data) {
 
     // Charts
     renderPieChart(data.sentiment_summary);
-    renderBarChart(data.comments);
-    renderDonutChart(data.total_comments - data.fake_comments_detected, data.fake_comments_detected);
+    renderBarChart(data.posts);
+    renderDonutChart(data.total_posts - data.fake_posts_detected, data.fake_posts_detected);
 
     // AI Insight
     document.getElementById('aiInsight').innerHTML = formatInsight(data.ai_insight);
 
-    // Comments table
-    currentComments = data.comments;
-    renderCommentsTable(currentComments);
+    // Posts table
+    currentPosts = data.posts;
+    renderPostsTable(currentPosts);
 
     // Scroll to dashboard
     dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -187,12 +187,12 @@ function renderPieChart(summary) {
     });
 }
 
-function renderBarChart(comments) {
+function renderBarChart(posts) {
     const ctx = document.getElementById('sentimentBarChart').getContext('2d');
     if (barChart) barChart.destroy();
 
-    const labels = comments.map((_, i) => `#${i + 1}`);
-    const scores = comments.map(c => c.sentiment_score);
+    const labels = posts.map((_, i) => `#${i + 1}`);
+    const scores = posts.map(c => c.sentiment_score);
     const colors = scores.map(s =>
         s >= 0.05 ? 'rgba(34, 197, 94, 0.7)' :
             s <= -0.05 ? 'rgba(239, 68, 68, 0.7)' :
@@ -232,7 +232,7 @@ function renderBarChart(comments) {
                 tooltip: {
                     callbacks: {
                         afterLabel: (ctx) => {
-                            const c = comments[ctx.dataIndex];
+                            const c = posts[ctx.dataIndex];
                             return `${c.content.substring(0, 80)}...`;
                         }
                     }
@@ -249,7 +249,7 @@ function renderDonutChart(realCount, fakeCount) {
     donutChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Real Comments', 'Fake Comments'],
+            labels: ['Real Posts', 'Fake Posts'],
             datasets: [{
                 data: [realCount, fakeCount],
                 backgroundColor: [
@@ -287,12 +287,12 @@ function formatInsight(text) {
     return `<p>${html}</p>`;
 }
 
-// ===== COMMENTS TABLE =====
-function renderCommentsTable(comments) {
-    const tbody = document.getElementById('commentsBody');
+// ===== POSTS TABLE =====
+function renderPostsTable(posts) {
+    const tbody = document.getElementById('postsBody');
     tbody.innerHTML = '';
 
-    comments.forEach((c, i) => {
+    posts.forEach((c, i) => {
         const tr = document.createElement('tr');
         tr.setAttribute('data-sentiment', c.sentiment_label);
         tr.setAttribute('data-authenticity', c.is_fake ? 'fake' : 'real');
@@ -342,12 +342,12 @@ function renderCommentsTable(comments) {
 }
 
 // ===== TABLE FILTER =====
-function filterComments(filter, btnEl) {
+function filterPosts(filter, btnEl) {
     // Update active button
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btnEl.classList.add('active');
 
-    const rows = document.querySelectorAll('#commentsBody tr');
+    const rows = document.querySelectorAll('#postsBody tr');
     rows.forEach(row => {
         const sentiment = row.getAttribute('data-sentiment');
         const authenticity = row.getAttribute('data-authenticity');
