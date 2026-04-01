@@ -1,110 +1,108 @@
-// ===== DOM REFERENCES =====
-const searchForm = document.getElementById('searchForm');
-const searchInput = document.getElementById('searchInput');
-const searchBtn = document.getElementById('searchBtn');
-const loadingSection = document.getElementById('loadingSection');
-const loadingQuery = document.getElementById('loadingQuery');
-const errorSection = document.getElementById('errorSection');
-const errorMessage = document.getElementById('errorMessage');
-const dashboard = document.getElementById('dashboard');
+// ===== Brand Insight Engine — Dashboard JS =====
 
-// Chart instances
-let pieChart = null;
-let barChart = null;
-let donutChart = null;
+let chartInstances = {};
+let lastQuery = '';
+let autoRefreshInterval = null;
+let countdownInterval = null;
+let countdownSeconds = 30;
 
-// Current data (for filtering)
-let currentPosts = [];
+// ===== PARTICLES BACKGROUND =====
+function createParticles() {
+    const container = document.getElementById('particles');
+    if (!container) return;
+    for (let i = 0; i < 30; i++) {
+        const p = document.createElement('div');
+        p.className = 'particle';
+        p.style.cssText = `
+            left: ${Math.random() * 100}%;
+            top: ${Math.random() * 100}%;
+            width: ${Math.random() * 4 + 1}px;
+            height: ${Math.random() * 4 + 1}px;
+            animation-delay: ${Math.random() * 6}s;
+            animation-duration: ${Math.random() * 10 + 10}s;
+        `;
+        container.appendChild(p);
+    }
+}
+createParticles();
 
-// ===== CHART.JS DEFAULTS =====
-Chart.defaults.color = '#8b8b9e';
-Chart.defaults.font.family = "'Inter', sans-serif";
-Chart.defaults.plugins.legend.labels.usePointStyle = true;
-Chart.defaults.plugins.legend.labels.padding = 16;
-
-// ===== SEARCH HANDLER =====
-searchForm.addEventListener('submit', async (e) => {
+// ===== SEARCH =====
+document.getElementById('searchForm').addEventListener('submit', (e) => {
     e.preventDefault();
-    const query = searchInput.value.trim();
+    const query = document.getElementById('searchInput').value.trim();
     if (!query) return;
-    await performSearch(query);
+    lastQuery = query;
+    runAnalysis(query);
 });
 
-function quickSearch(query) {
-    searchInput.value = query;
-    performSearch(query);
+function quickSearch(term) {
+    document.getElementById('searchInput').value = term;
+    lastQuery = term;
+    runAnalysis(term);
 }
 
-async function performSearch(query) {
-    showLoading(query);
+// ===== LOADING ANIMATION =====
+function showLoading(query) {
+    document.getElementById('loadingSection').style.display = 'flex';
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('errorSection').style.display = 'none';
+    document.getElementById('loadingQuery').textContent = query;
 
-    // Animate loading steps
-    const steps = ['step1', 'step2', 'step3', 'step4'];
-    let stepIndex = 0;
-    const stepTimer = setInterval(() => {
-        if (stepIndex > 0) {
-            document.getElementById(steps[stepIndex - 1]).classList.remove('active');
-            document.getElementById(steps[stepIndex - 1]).classList.add('done');
+    const steps = ['step1','step2','step3','step4','step5'];
+    steps.forEach(s => document.getElementById(s).classList.remove('active','done'));
+    document.getElementById('step1').classList.add('active');
+
+    let idx = 0;
+    const interval = setInterval(() => {
+        if (idx < steps.length) {
+            document.getElementById(steps[idx]).classList.remove('active');
+            document.getElementById(steps[idx]).classList.add('done');
         }
-        if (stepIndex < steps.length) {
-            document.getElementById(steps[stepIndex]).classList.add('active');
-            stepIndex++;
+        idx++;
+        if (idx < steps.length) {
+            document.getElementById(steps[idx]).classList.add('active');
         } else {
-            clearInterval(stepTimer);
+            clearInterval(interval);
         }
-    }, 2000);
+    }, 2500);
+    return interval;
+}
+
+// ===== MAIN ANALYSIS =====
+async function runAnalysis(query) {
+    const loadingInterval = showLoading(query);
+    const btn = document.getElementById('searchBtn');
+    btn.disabled = true;
+    btn.querySelector('.btn-text').textContent = 'Analyzing...';
 
     try {
-        const response = await fetch(`/api/analyze/${encodeURIComponent(query)}`);
-        const data = await response.json();
+        const res = await fetch(`/api/analyze/${encodeURIComponent(query)}`);
+        const data = await res.json();
 
-        clearInterval(stepTimer);
+        clearInterval(loadingInterval);
+        document.getElementById('loadingSection').style.display = 'none';
 
         if (data.error) {
-            showError(data.error);
+            document.getElementById('errorSection').style.display = 'flex';
+            document.getElementById('errorMessage').textContent = data.error;
             return;
         }
 
         renderDashboard(data);
     } catch (err) {
-        clearInterval(stepTimer);
-        showError('Failed to connect to the server. Make sure the backend is running.');
-        console.error(err);
+        clearInterval(loadingInterval);
+        document.getElementById('loadingSection').style.display = 'none';
+        document.getElementById('errorSection').style.display = 'flex';
+        document.getElementById('errorMessage').textContent = `Network error: ${err.message}`;
+    } finally {
+        btn.disabled = false;
+        btn.querySelector('.btn-text').textContent = 'Analyze';
     }
-}
-
-// ===== UI STATE MANAGEMENT =====
-function showLoading(query) {
-    loadingQuery.textContent = query;
-    loadingSection.style.display = '';
-    errorSection.style.display = 'none';
-    dashboard.style.display = 'none';
-
-    // Reset all steps
-    document.querySelectorAll('.loader-step').forEach(s => {
-        s.classList.remove('active', 'done');
-    });
-    document.getElementById('step1').classList.add('active');
-}
-
-function showError(msg) {
-    loadingSection.style.display = 'none';
-    errorSection.style.display = '';
-    dashboard.style.display = 'none';
-    errorMessage.textContent = msg;
-}
-
-function showDashboard() {
-    loadingSection.style.display = 'none';
-    errorSection.style.display = 'none';
-    dashboard.style.display = '';
 }
 
 // ===== RENDER DASHBOARD =====
 function renderDashboard(data) {
-    showDashboard();
-
-    // Query label & timestamp
+    document.getElementById('dashboard').style.display = 'block';
     document.getElementById('queryLabel').textContent = data.query;
     document.getElementById('timestamp').textContent = new Date().toLocaleString();
 
@@ -113,93 +111,87 @@ function renderDashboard(data) {
     animateCounter('positiveCount', data.sentiment_summary.positive);
     animateCounter('negativeCount', data.sentiment_summary.negative);
     animateCounter('fakeCount', data.fake_posts_detected);
+    animateCounter('avgTrust', data.avg_trust_score || 0);
 
     const avgEl = document.getElementById('avgSentiment');
     avgEl.textContent = data.avg_sentiment > 0 ? `+${data.avg_sentiment}` : data.avg_sentiment;
-    avgEl.style.color = data.avg_sentiment >= 0.05 ? '#22c55e' : data.avg_sentiment <= -0.05 ? '#ef4444' : '#eab308';
+    avgEl.className = `stat-value ${data.avg_sentiment >= 0.05 ? 'text-green' : data.avg_sentiment <= -0.05 ? 'text-red' : ''}`;
+
+    // Scroll to dashboard
+    document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     // Charts
-    renderPieChart(data.sentiment_summary);
-    renderBarChart(data.posts);
-    renderDonutChart(data.total_posts - data.fake_posts_detected, data.fake_posts_detected);
+    renderSentimentPie(data.sentiment_summary);
+    renderSentimentBar(data.posts);
+    renderFakeDonut(data);
+    renderEmotionChart(data.emotions || {});
+    renderAspectChart(data.aspects || []);
+
+    // Keywords
+    renderKeywords(data.keywords || []);
 
     // AI Insight
     document.getElementById('aiInsight').innerHTML = formatInsight(data.ai_insight);
 
-    // Posts table
-    currentPosts = data.posts;
-    renderPostsTable(currentPosts);
+    // Recommendations
+    renderRecommendations(data.recommendations || []);
 
-    // Scroll to dashboard
-    dashboard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Posts Table
+    renderPostsTable(data.posts);
 }
 
 // ===== COUNTER ANIMATION =====
 function animateCounter(id, target) {
     const el = document.getElementById(id);
-    const duration = 800;
-    const start = performance.now();
-    const from = 0;
-
-    function update(now) {
-        const progress = Math.min((now - start) / duration, 1);
-        const eased = 1 - Math.pow(1 - progress, 3);
-        el.textContent = Math.round(from + (target - from) * eased);
-        if (progress < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
+    if (!el) return;
+    let current = 0;
+    const step = Math.max(1, Math.ceil(target / 30));
+    const timer = setInterval(() => {
+        current += step;
+        if (current >= target) {
+            current = target;
+            clearInterval(timer);
+        }
+        el.textContent = current;
+    }, 30);
 }
 
 // ===== CHARTS =====
-function renderPieChart(summary) {
-    const ctx = document.getElementById('sentimentPieChart').getContext('2d');
-    if (pieChart) pieChart.destroy();
+function destroyChart(key) {
+    if (chartInstances[key]) { chartInstances[key].destroy(); }
+}
 
-    pieChart = new Chart(ctx, {
+function renderSentimentPie(summary) {
+    destroyChart('pie');
+    const ctx = document.getElementById('sentimentPieChart').getContext('2d');
+    chartInstances.pie = new Chart(ctx, {
         type: 'doughnut',
         data: {
             labels: ['Positive', 'Negative', 'Neutral'],
             datasets: [{
-                data: [summary.positive, summary.negative, summary.neutral],
-                backgroundColor: [
-                    'rgba(34, 197, 94, 0.85)',
-                    'rgba(239, 68, 68, 0.85)',
-                    'rgba(234, 179, 8, 0.85)'
-                ],
-                borderColor: 'transparent',
+                data: [summary.positive, summary.negative, summary.neutral || 0],
+                backgroundColor: ['#22c55e', '#ef4444', '#64748b'],
                 borderWidth: 0,
                 hoverOffset: 8,
-                spacing: 3,
-                borderRadius: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 20, font: { size: 13 } }
-                }
-            }
+            cutout: '60%',
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter' } } } }
         }
     });
 }
 
-function renderBarChart(posts) {
+function renderSentimentBar(posts) {
+    destroyChart('bar');
     const ctx = document.getElementById('sentimentBarChart').getContext('2d');
-    if (barChart) barChart.destroy();
+    const labels = posts.map((_, i) => `#${i+1}`);
+    const scores = posts.map(p => p.sentiment_score);
+    const colors = scores.map(s => s >= 0.05 ? '#22c55e' : s <= -0.05 ? '#ef4444' : '#64748b');
 
-    const labels = posts.map((_, i) => `#${i + 1}`);
-    const scores = posts.map(c => c.sentiment_score);
-    const colors = scores.map(s =>
-        s >= 0.05 ? 'rgba(34, 197, 94, 0.7)' :
-            s <= -0.05 ? 'rgba(239, 68, 68, 0.7)' :
-                'rgba(234, 179, 8, 0.7)'
-    );
-
-    barChart = new Chart(ctx, {
+    chartInstances.bar = new Chart(ctx, {
         type: 'bar',
         data: {
             labels,
@@ -207,84 +199,186 @@ function renderBarChart(posts) {
                 label: 'Sentiment Score',
                 data: scores,
                 backgroundColor: colors,
-                borderRadius: 4,
+                borderRadius: 6,
                 borderSkipped: false,
-                barPercentage: 0.7
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
             scales: {
-                y: {
-                    min: -1,
-                    max: 1,
-                    grid: { color: 'rgba(255,255,255,0.04)' },
-                    ticks: { font: { size: 11 } }
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { font: { size: 10 } }
-                }
+                y: { min: -1, max: 1, grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8' } }
             },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        afterLabel: (ctx) => {
-                            const c = posts[ctx.dataIndex];
-                            return `${c.content.substring(0, 80)}...`;
-                        }
-                    }
-                }
-            }
+            plugins: { legend: { display: false } }
         }
     });
 }
 
-function renderDonutChart(realCount, fakeCount) {
+function renderFakeDonut(data) {
+    destroyChart('fake');
     const ctx = document.getElementById('fakeDonutChart').getContext('2d');
-    if (donutChart) donutChart.destroy();
-
-    donutChart = new Chart(ctx, {
+    const real = data.total_posts - data.fake_posts_detected - (data.bot_flagged_count || 0);
+    chartInstances.fake = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Real Posts', 'Fake Posts'],
+            labels: ['Real Posts', 'Fake Detected', 'Bot Flagged'],
             datasets: [{
-                data: [realCount, fakeCount],
-                backgroundColor: [
-                    'rgba(34, 197, 94, 0.85)',
-                    'rgba(239, 68, 68, 0.85)'
-                ],
-                borderColor: 'transparent',
+                data: [Math.max(0, real), data.fake_posts_detected, data.bot_flagged_count || 0],
+                backgroundColor: ['#22c55e', '#ef4444', '#f97316'],
                 borderWidth: 0,
                 hoverOffset: 8,
-                spacing: 3,
-                borderRadius: 4
             }]
         },
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            cutout: '65%',
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: { padding: 20, font: { size: 13 } }
-                }
-            }
+            cutout: '60%',
+            plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter' } } } }
         }
     });
+}
+
+function renderEmotionChart(emotions) {
+    destroyChart('emotion');
+    const ctx = document.getElementById('emotionChart').getContext('2d');
+    const emotionLabels = ['Joy', 'Anger', 'Fear', 'Surprise', 'Sadness', 'Disgust', 'Neutral'];
+    const emotionKeys = ['joy', 'anger', 'fear', 'surprise', 'sadness', 'disgust', 'neutral'];
+    const emotionColors = ['#22c55e', '#ef4444', '#a855f7', '#eab308', '#3b82f6', '#f97316', '#64748b'];
+    const emotionData = emotionKeys.map(k => emotions[k] || 0);
+
+    chartInstances.emotion = new Chart(ctx, {
+        type: 'radar',
+        data: {
+            labels: emotionLabels,
+            datasets: [{
+                label: 'Emotion Detection',
+                data: emotionData,
+                backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                borderColor: '#6366f1',
+                borderWidth: 2,
+                pointBackgroundColor: emotionColors,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 1,
+                pointRadius: 5,
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                r: {
+                    beginAtZero: true,
+                    grid: { color: 'rgba(148,163,184,0.15)' },
+                    angleLines: { color: 'rgba(148,163,184,0.15)' },
+                    pointLabels: { color: '#94a3b8', font: { family: 'Inter', size: 12 } },
+                    ticks: { display: false }
+                }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+function renderAspectChart(aspects) {
+    destroyChart('aspect');
+    const ctx = document.getElementById('aspectChart').getContext('2d');
+
+    if (!aspects.length) {
+        chartInstances.aspect = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: ['No aspects detected'], datasets: [{ data: [0], backgroundColor: ['#64748b'], borderRadius: 6 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { display: false }, y: { display: false } } }
+        });
+        return;
+    }
+
+    const labels = aspects.map(a => a.aspect);
+    const mentions = aspects.map(a => a.mentions || 1);
+    const colors = aspects.map(a => {
+        if (a.sentiment === 'positive') return '#22c55e';
+        if (a.sentiment === 'negative') return '#ef4444';
+        return '#64748b';
+    });
+
+    chartInstances.aspect = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Mentions',
+                data: mentions,
+                backgroundColor: colors,
+                borderRadius: 6,
+                borderSkipped: false,
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { grid: { color: 'rgba(148,163,184,0.1)' }, ticks: { color: '#94a3b8' } },
+                y: { grid: { display: false }, ticks: { color: '#e2e8f0', font: { family: 'Inter', weight: 600 } } }
+            },
+            plugins: { legend: { display: false } }
+        }
+    });
+}
+
+// ===== KEYWORDS =====
+function renderKeywords(keywords) {
+    const container = document.getElementById('keywordsContainer');
+    if (!keywords.length) {
+        container.innerHTML = '<p class="no-data">No keywords extracted</p>';
+        return;
+    }
+    container.innerHTML = keywords.map(k => `
+        <div class="keyword-pill">
+            <span class="keyword-name">${k.keyword}</span>
+            <span class="keyword-meta">${k.mentions || 0} mentions · ${((k.relevance || 0) * 100).toFixed(0)}%</span>
+        </div>
+    `).join('');
+}
+
+// ===== RECOMMENDATIONS =====
+function renderRecommendations(recs) {
+    const grid = document.getElementById('recommendationsGrid');
+    if (!recs.length) {
+        grid.innerHTML = '<p class="no-data">No recommendations generated</p>';
+        return;
+    }
+    grid.innerHTML = recs.map(r => {
+        const priorityClass = r.priority === 'high' ? 'priority-high' : r.priority === 'medium' ? 'priority-medium' : 'priority-low';
+        const priorityIcon = r.priority === 'high' ? '🔴' : r.priority === 'medium' ? '🟡' : '🟢';
+        return `
+        <div class="rec-card ${priorityClass}">
+            <div class="rec-header">
+                <span class="rec-priority">${priorityIcon} ${r.priority.toUpperCase()}</span>
+            </div>
+            <h4 class="rec-title">${r.title}</h4>
+            <p class="rec-desc">${r.description}</p>
+        </div>
+        `;
+    }).join('');
 }
 
 // ===== FORMAT INSIGHT =====
 function formatInsight(text) {
     if (!text) return '<p>No insight available.</p>';
-    // Convert markdown bold
-    let html = text
+    return text
         .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-        .replace(/\n/g, '<br>');
-    return `<p>${html}</p>`;
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/^### (.*$)/gm, '<h4>$1</h4>')
+        .replace(/^## (.*$)/gm, '<h3>$1</h3>')
+        .replace(/^- (.*$)/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+        .replace(/\n{2,}/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^(.+)$/gm, (match) => {
+            if (match.startsWith('<')) return match;
+            return match;
+        });
 }
 
 // ===== POSTS TABLE =====
@@ -296,37 +390,74 @@ function renderPostsTable(posts) {
         const tr = document.createElement('tr');
         tr.setAttribute('data-sentiment', c.sentiment_label);
         tr.setAttribute('data-authenticity', c.is_fake ? 'fake' : 'real');
+        tr.setAttribute('data-bot', (c.bot_score || 0) >= 0.35 ? 'yes' : 'no');
 
-        // Score bar color
-        const normalized = (c.sentiment_score + 1) / 2; // -1..1 → 0..1
-        const barColor = c.sentiment_score >= 0.05 ? '#22c55e' :
-            c.sentiment_score <= -0.05 ? '#ef4444' : '#eab308';
+        // Sentiment bar color
+        const normalized = (c.sentiment_score + 1) / 2;
+        const barColor = c.sentiment_score >= 0.05 ? '#22c55e' : c.sentiment_score <= -0.05 ? '#ef4444' : '#64748b';
 
-        // Fake confidence bar color
-        const fakeBarColor = c.is_fake ? '#ef4444' : '#22c55e';
+        // Trust badge
+        const trustScore = c.trust_score || 0;
+        const trustColor = trustScore >= 70 ? '#22c55e' : trustScore >= 40 ? '#eab308' : '#ef4444';
+
+        // Credibility badge
+        const credLevel = c.credibility_level || 'medium';
+        const credScore = c.credibility_score || 50;
+        const credColor = credLevel === 'high' ? '#22c55e' : credLevel === 'medium' ? '#eab308' : '#ef4444';
+
+        // Emotion emoji
+        const emotionEmojis = {
+            joy: '😊', anger: '😠', fear: '😨', surprise: '😲',
+            sadness: '😢', disgust: '🤢', neutral: '😐'
+        };
+        const emotionEmoji = emotionEmojis[c.emotion || 'neutral'] || '😐';
+        const emotionLabel = (c.emotion || 'neutral').charAt(0).toUpperCase() + (c.emotion || 'neutral').slice(1);
+
+        // Fake label
+        const fakeLabel = c.is_fake
+            ? `<span class="badge badge-fake">FAKE</span>`
+            : `<span class="badge badge-real">REAL</span>`;
 
         tr.innerHTML = `
-            <td style="color: var(--text-muted); font-weight: 500;">${i + 1}</td>
-            <td><span class="author-name">${escapeHtml(c.author || 'Unknown')}</span></td>
-            <td title="${escapeHtml(c.content)}">${escapeHtml(truncate(c.content, 100))}</td>
-            <td><span class="badge badge-${c.sentiment_label}">${c.sentiment_label}</span></td>
+            <td>${i + 1}</td>
+            <td>
+                <div class="author-cell">
+                    <span class="author-name">${c.author || 'Unknown'}</span>
+                    <span class="author-sub">r/${c.subreddit || '?'}</span>
+                </div>
+            </td>
+            <td>
+                <div class="post-content">${c.content ? c.content.substring(0, 120) + (c.content.length > 120 ? '...' : '') : 'N/A'}</div>
+            </td>
+            <td>
+                <span class="emotion-badge">${emotionEmoji} ${emotionLabel}</span>
+            </td>
             <td>
                 <div class="score-bar">
-                    <span style="font-weight:600; font-size:0.82rem;">${c.sentiment_score}</span>
+                    <span class="sentiment-label label-${c.sentiment_label}">${c.sentiment_label}</span>
                     <div class="score-bar-track">
                         <div class="score-bar-fill" style="width:${normalized * 100}%; background:${barColor};"></div>
                     </div>
                 </div>
             </td>
-            <td><span class="badge ${c.is_fake ? 'badge-fake' : 'badge-real'}">${c.is_fake ? '⚠ Fake' : '✓ Real'}</span></td>
+            <td class="score-cell">${c.score || 0} ▲</td>
             <td>
-                <div class="score-bar">
-                    <span style="font-weight:600; font-size:0.82rem;">${(c.fake_confidence * 100).toFixed(0)}%</span>
-                    <div class="score-bar-track">
-                        <div class="score-bar-fill" style="width:${c.fake_confidence * 100}%; background:${fakeBarColor};"></div>
-                    </div>
+                <div class="trust-badge" style="--trust-color: ${trustColor}">
+                    <span class="trust-value">${trustScore}</span>
+                    <svg width="28" height="28" viewBox="0 0 36 36" class="trust-ring">
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="3"/>
+                        <circle cx="18" cy="18" r="15" fill="none" stroke="${trustColor}" stroke-width="3"
+                                stroke-dasharray="${trustScore * 0.94} 94" stroke-linecap="round"
+                                transform="rotate(-90 18 18)"/>
+                    </svg>
                 </div>
             </td>
+            <td>
+                <span class="cred-badge cred-${credLevel}" title="Credibility: ${credScore}/100">
+                    ${credLevel.toUpperCase()}
+                </span>
+            </td>
+            <td>${fakeLabel}</td>
             <td>
                 <a href="${c.url}" target="_blank" rel="noopener" class="link-icon">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -341,35 +472,51 @@ function renderPostsTable(posts) {
     });
 }
 
-// ===== TABLE FILTER =====
-function filterPosts(filter, btnEl) {
-    // Update active button
+// ===== FILTER POSTS =====
+function filterPosts(filter, btn) {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-    btnEl.classList.add('active');
+    btn.classList.add('active');
 
     const rows = document.querySelectorAll('#postsBody tr');
     rows.forEach(row => {
         const sentiment = row.getAttribute('data-sentiment');
         const authenticity = row.getAttribute('data-authenticity');
+        const isBot = row.getAttribute('data-bot');
 
         if (filter === 'all') {
             row.style.display = '';
         } else if (filter === 'real' || filter === 'fake') {
             row.style.display = authenticity === filter ? '' : 'none';
+        } else if (filter === 'bot') {
+            row.style.display = isBot === 'yes' ? '' : 'none';
         } else {
             row.style.display = sentiment === filter ? '' : 'none';
         }
     });
 }
 
-// ===== UTILITIES =====
-function escapeHtml(text) {
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
+// ===== AUTO-REFRESH / LIVE DASHBOARD =====
+document.getElementById('autoRefreshToggle').addEventListener('change', function() {
+    const countdownEl = document.getElementById('refreshCountdown');
+    if (this.checked && lastQuery) {
+        countdownSeconds = 30;
+        countdownEl.textContent = `(${countdownSeconds}s)`;
 
-function truncate(text, maxLen) {
-    if (!text) return '';
-    return text.length > maxLen ? text.substring(0, maxLen) + '...' : text;
-}
+        countdownInterval = setInterval(() => {
+            countdownSeconds--;
+            countdownEl.textContent = `(${countdownSeconds}s)`;
+            if (countdownSeconds <= 0) {
+                countdownSeconds = 30;
+            }
+        }, 1000);
+
+        autoRefreshInterval = setInterval(() => {
+            runAnalysis(lastQuery);
+        }, 30000);
+    } else {
+        clearInterval(autoRefreshInterval);
+        clearInterval(countdownInterval);
+        autoRefreshInterval = null;
+        countdownEl.textContent = '';
+    }
+});

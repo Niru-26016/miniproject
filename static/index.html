@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Brand Insight Engine — Sentiment Dashboard</title>
-    <meta name="description" content="AI-powered product sentiment analysis dashboard with Reddit scraping and fake comment detection.">
+    <meta name="description" content="AI-powered product sentiment analysis dashboard with Reddit scraping, emotion detection, and fake post detection.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
@@ -28,7 +28,13 @@
                 </div>
                 <h1>Brand Insight Engine</h1>
             </div>
-            <span class="header-badge">AI-Powered Analysis</span>
+            <div class="header-right">
+                <label class="auto-refresh-toggle" title="Auto-refresh every 30s">
+                    <input type="checkbox" id="autoRefreshToggle">
+                    <span class="toggle-label">Live <span id="refreshCountdown"></span></span>
+                </label>
+                <span class="header-badge">AI-Powered Analysis</span>
+            </div>
         </div>
     </header>
 
@@ -36,7 +42,7 @@
     <section class="search-section">
         <div class="search-container">
             <h2 class="search-title">Discover What People <span class="gradient-text">Really Think</span></h2>
-            <p class="search-subtitle">Enter any product or brand name to analyze Reddit sentiment and detect fake comments using AI</p>
+            <p class="search-subtitle">Enter any product or brand name to analyze Reddit sentiment, detect fake posts, and get AI-powered insights</p>
             <form id="searchForm" class="search-form">
                 <div class="search-input-wrapper">
                     <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -87,9 +93,13 @@
                 </div>
                 <div class="loader-step" id="step3">
                     <div class="step-dot"></div>
-                    <span>Detecting Fake Comments...</span>
+                    <span>Detecting Fake Posts & Bots...</span>
                 </div>
                 <div class="loader-step" id="step4">
+                    <div class="step-dot"></div>
+                    <span>Analyzing Emotions & Aspects...</span>
+                </div>
+                <div class="loader-step" id="step5">
                     <div class="step-dot"></div>
                     <span>Generating AI Insights...</span>
                 </div>
@@ -184,9 +194,21 @@
                     <span class="stat-label">Fake Detected</span>
                 </div>
             </div>
+            <div class="stat-card stat-trust">
+                <div class="stat-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                        <polyline points="9 12 11 14 15 10"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-value" id="avgTrust">0</span>
+                    <span class="stat-label">Avg Trust Score</span>
+                </div>
+            </div>
         </div>
 
-        <!-- Charts Section -->
+        <!-- Charts Row 1: Sentiment + Emotions -->
         <div class="charts-grid">
             <div class="chart-card">
                 <h3 class="card-title">Sentiment Distribution</h3>
@@ -195,14 +217,30 @@
                 </div>
             </div>
             <div class="chart-card">
+                <h3 class="card-title">Emotion Analysis</h3>
+                <div class="chart-wrapper">
+                    <canvas id="emotionChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2: Bar + Aspects -->
+        <div class="charts-grid">
+            <div class="chart-card">
                 <h3 class="card-title">Post Sentiment Scores</h3>
                 <div class="chart-wrapper">
                     <canvas id="sentimentBarChart"></canvas>
                 </div>
             </div>
+            <div class="chart-card">
+                <h3 class="card-title">Aspect-Based Sentiment</h3>
+                <div class="chart-wrapper">
+                    <canvas id="aspectChart"></canvas>
+                </div>
+            </div>
         </div>
 
-        <!-- Fake vs Real Chart -->
+        <!-- Charts Row 3: Fake vs Real -->
         <div class="charts-grid single">
             <div class="chart-card">
                 <h3 class="card-title">Authenticity Analysis</h3>
@@ -210,6 +248,12 @@
                     <canvas id="fakeDonutChart"></canvas>
                 </div>
             </div>
+        </div>
+
+        <!-- Keywords Section -->
+        <div class="keywords-card" id="keywordsSection">
+            <h3 class="card-title">🔑 Top Keywords & Topics</h3>
+            <div class="keywords-container" id="keywordsContainer"></div>
         </div>
 
         <!-- AI Insight -->
@@ -225,6 +269,18 @@
             </div>
         </div>
 
+        <!-- Recommendations Section -->
+        <div class="recommendations-card" id="recommendationsSection">
+            <div class="insight-header">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <h3>AI Recommendations</h3>
+            </div>
+            <div class="recommendations-grid" id="recommendationsGrid"></div>
+        </div>
+
         <!-- Posts Table -->
         <div class="table-card">
             <div class="table-header">
@@ -233,6 +289,7 @@
                     <button class="filter-btn active" data-filter="all" onclick="filterPosts('all', this)">All</button>
                     <button class="filter-btn" data-filter="real" onclick="filterPosts('real', this)">Real</button>
                     <button class="filter-btn" data-filter="fake" onclick="filterPosts('fake', this)">Fake</button>
+                    <button class="filter-btn" data-filter="bot" onclick="filterPosts('bot', this)">Bot</button>
                     <button class="filter-btn" data-filter="positive" onclick="filterPosts('positive', this)">Positive</button>
                     <button class="filter-btn" data-filter="negative" onclick="filterPosts('negative', this)">Negative</button>
                 </div>
@@ -244,10 +301,12 @@
                             <th>#</th>
                             <th>Author</th>
                             <th>Post</th>
+                            <th>Emotion</th>
                             <th>Sentiment</th>
                             <th>Score</th>
+                            <th>Trust</th>
+                            <th>Credibility</th>
                             <th>Real / Fake</th>
-                            <th>Confidence</th>
                             <th>Link</th>
                         </tr>
                     </thead>

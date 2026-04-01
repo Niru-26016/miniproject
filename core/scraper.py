@@ -1,5 +1,4 @@
 import requests
-import time
 import os
 
 class RedditScraper:
@@ -8,8 +7,8 @@ class RedditScraper:
 
     def scrape(self, brand: str):
         """
-        1. Search Reddit for posts matching the brand/query
-        Returns a list of posts
+        Search Reddit for posts matching the brand/query.
+        Extracts comprehensive metadata from each post.
         """
         post_limit = os.getenv("REDDIT_POST_LIMIT", "15")
         url = f"https://www.reddit.com/search.json?q={brand}&limit={post_limit}&sort=relevance&t=week"
@@ -21,22 +20,48 @@ class RedditScraper:
             results = []
 
             for p in posts:
-                post_data = p['data']
-                permalink = post_data.get('permalink', '')
-                post_title = post_data.get('title', '')
-                post_body = post_data.get('selftext', '')
+                d = p['data']
+                post_title = d.get('title', '')
+                post_body = d.get('selftext', '')
+                permalink = d.get('permalink', '')
 
-                # Add the post itself
                 results.append({
-                    "id": post_data.get('id'),
-                    "author": post_data.get('author'),
-                    "content": f"{post_title} {post_body}",
+                    # Core fields
+                    "id": d.get('id'),
+                    "author": d.get('author'),
+                    "content": f"{post_title} {post_body}".strip(),
+                    "title": post_title,
                     "url": f"https://reddit.com{permalink}",
                     "brand": brand.lower(),
-                    "type": "post"
+                    "type": "post",
+
+                    # Engagement metrics
+                    "score": d.get('score', 0),
+                    "upvote_ratio": d.get('upvote_ratio'),
+                    "comment_count": d.get('num_comments', 0),
+                    "num_crossposts": d.get('num_crossposts', 0),
+                    "total_awards": d.get('total_awards_received', 0),
+
+                    # Post metadata
+                    "subreddit": d.get('subreddit', ''),
+                    "subreddit_subscribers": d.get('subreddit_subscribers', 0),
+                    "domain": d.get('domain', ''),
+                    "is_self": d.get('is_self', False),
+                    "is_video": d.get('is_video', False),
+                    "over_18": d.get('over_18', False),
+                    "spoiler": d.get('spoiler', False),
+                    "locked": d.get('locked', False),
+                    "stickied": d.get('stickied', False),
+
+                    # Author metadata
+                    "author_premium": d.get('author_premium', False),
+                    "author_flair_text": d.get('author_flair_text'),
+
+                    # Timestamps
+                    "created_utc": d.get('created_utc'),
                 })
 
             return results
         except Exception as e:
             print(f"Scraper Error: {e}")
-            return []
+            return []
