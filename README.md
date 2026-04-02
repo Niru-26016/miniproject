@@ -1,30 +1,35 @@
 # 🔍 Brand Insight Engine — Sentiment Analysis Dashboard
 
-An AI-powered product sentiment analysis dashboard that scrapes Reddit, runs VADER sentiment analysis, and uses OpenAI GPT-4o-mini to detect fake/bot comments — all displayed in a premium dark-mode UI.
+An advanced, AI-powered product sentiment analysis dashboard that scrapes Reddit, runs extensive heuristic and AI-based evaluations (VADER sentiment, OpenAI emotion detection, trust scoring, and fake post detection) — all displayed in a premium, real-time dark-mode UI.
 
 ![Dashboard Preview](https://img.shields.io/badge/Status-Active-brightgreen) ![Python](https://img.shields.io/badge/Python-3.10+-blue) ![FastAPI](https://img.shields.io/badge/FastAPI-0.135-009688)
 
 ## ✨ Features
 
-- **🔎 Natural Language Search** — Enter any product or brand name (e.g. "iPhone 17", "Samsung S26", "PS5")
-- **📡 Reddit Scraping** — Fetches top posts + comments from Reddit (past week, sorted by relevance)
-- **📊 VADER Sentiment Analysis** — Classifies each comment as positive, negative, or neutral with a polarity score
-- **🤖 AI Fake Comment Detection** — Uses OpenAI GPT-4o-mini to identify spam, bot-generated, and promotional comments
-- **💡 AI-Generated Insights** — Generates a conversational summary identifying top issues and improvement suggestions
-- **📈 Interactive Charts** — Sentiment distribution pie chart, per-comment bar chart, and authenticity donut chart
-- **🛡️ Bot Shield** — Rule-based pre-filter for obvious spam/bot content
-- **💾 ChromaDB Vector Storage** — Stores genuine human feedback for persistent analysis
+- **🔎 Natural Language Search** — Enter any product or brand name (e.g. "iPhone 17", "Samsung S26", "PS5").
+- **📡 Rich Reddit Scraping** — Fetches top posts + comments from Reddit (past week, sorted by relevance) pulling over 20+ metadata fields (engagement, author info, timing, etc.).
+- **📊 VADER Sentiment Analysis** — Classifies each post as positive, negative, or neutral with a compound polarity score.
+- **🤖 AI Fake Post Detection** — Uses OpenAI GPT-4o-mini to identify spam, bot-generated, and promotional content.
+- **🎭 Emotion Detection** — Classifies dominant emotions alongside sentiment (Joy, Anger, Fear, Surprise, Sadness, Disgust).
+- **🛡️ BotShield** — Comprehensive 17-signal heuristic engine evaluating spam phrases, link density, account age, upvote ratios, text patterns, and more to calculate a Bot Probability Score.
+- **✅ Trust & Credibility Scoring** — Evaluates author reputation, engagement, and bot signals to provide a 0-100 Trust Score and High/Medium/Low Credibility ratings per post.
+- **🏷️ Aspect-Based Sentiment** — Breaks down sentiment by specific product features (e.g., "camera: positive", "battery: negative").
+- **🔑 Keyword Extraction** — Identifies and ranks the top discussed topics or features.
+- **💡 Actionable Recommendations** — AI generates prioritized, actionable insights for the brand based on current sentiment patterns.
+- **📈 Comprehensive Interactive Charts** — Radar charts, donut charts, and bar charts using Chart.js.
+- **⚡ Live Dashboard** — Auto-refreshing UI with countdown timers.
+- **💾 ChromaDB Vector Storage** — Background sync to store genuine human feedback for historical tracking.
 
 ## 🛠️ Tech Stack
 
 | Layer | Technology |
 |-------|-----------|
-| Backend | FastAPI, Python |
-| NLP | VADER Sentiment, OpenAI GPT-4o-mini |
-| Scraping | Reddit JSON API |
-| Vector DB | ChromaDB |
-| Frontend | HTML, CSS, JavaScript, Chart.js |
-| Server | Uvicorn |
+| **Backend** | FastAPI, Python |
+| **NLP & AI** | VADER Sentiment, OpenAI GPT-4o-mini |
+| **Scraping** | Reddit JSON API |
+| **Vector DB** | ChromaDB |
+| **Frontend** | HTML, CSS, JavaScript (Vanilla), Chart.js |
+| **Server** | Uvicorn |
 
 ## 🚀 Setup & Run
 
@@ -52,6 +57,7 @@ pip install -r requirements.txt
 Create a `.env` file in the root directory:
 ```
 OPENAI_API_KEY=sk-your-key-here
+REDDIT_POST_LIMIT=15
 ```
 
 ### 5. Run the server
@@ -66,17 +72,17 @@ Visit **http://127.0.0.1:8000** in your browser
 
 ```
 miniproject/
-├── main.py                  # FastAPI app with API endpoints
+├── main.py                  # FastAPI app with API endpoints and scoring logic
 ├── core/
-│   ├── scraper.py           # Reddit scraper (posts + comments)
-│   ├── bot_shield.py        # Rule-based bot detection
-│   └── nlp_engine.py        # OpenAI integration (insights + fake detection)
+│   ├── scraper.py           # Advanced Reddit scraper (extracts 20+ metadata fields)
+│   ├── bot_shield.py        # 17-signal heuristic bot detection engine
+│   └── nlp_engine.py        # OpenAI integration (emotions, aspects, keywords, recommendations)
 ├── static/
-│   ├── index.html           # Dashboard frontend
-│   ├── style.css            # Dark-mode styling
-│   └── app.js               # Charts, search, table rendering
+│   ├── index.html           # Full dashboard frontend
+│   ├── style.css            # Premium dark-mode styling and animations
+│   └── app.js               # Event handling, live updates, and Chart.js rendering
 ├── requirements.txt
-├── .env                     # API keys (git-ignored)
+├── .env                     # API keys and limits (git-ignored)
 └── .gitignore
 ```
 
@@ -85,15 +91,16 @@ miniproject/
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/` | Serves the dashboard UI |
-| `GET` | `/api/analyze/{query}` | Full analysis: scrape + sentiment + fake detection + AI insight |
-| `POST` | `/api/sync/{brand}` | Background sync: scrape & store in ChromaDB |
-| `GET` | `/api/report/{brand}` | Generate AI report from stored data |
+| `GET` | `/api/analyze/{query}` | Full pipeline: scrape, VADER, BotShield, OpenAI analysis, Trust & Credibility |
+| `POST` | `/api/sync/{brand}` | Background sync: scrape, filter bots, & store in ChromaDB |
+| `GET` | `/api/report/{brand}` | Generate high-level AI report from stored (human) data |
 
 ## ⚠️ Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | ✅ | Your OpenAI API key for fake detection & insights |
+| `OPENAI_API_KEY` | ✅ | Your OpenAI API key for advanced analysis |
+| `REDDIT_POST_LIMIT`| ❌ | Number of reddit posts to scrape (defaults to 15) |
 
 ## 📝 License
 
